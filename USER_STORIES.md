@@ -1,0 +1,7 @@
+- I am wanting to go on holiday in the UK this weekend, I would like to know the weather of my favourite campsites.
+- I want to create a profile so I can view my favourite campsites and keep tracking the forecast of multiple campsites.
+- I want a secure login that won't get my credentials stolen.
+- I want to try a different campsite, is there any campsites with good weather this weekend?
+- I like this campsite, can you show me nearby attractions?
+- I want to go camping this weekend, how can I check and track if a tropical cyclone won't hit the campsite.
+- I want to subscribe to alerts so that I can know if there will be any weather alerts for my favourite campsites.
