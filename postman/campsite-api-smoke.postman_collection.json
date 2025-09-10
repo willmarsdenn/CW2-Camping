@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "Campsite API (Deno + Supabase) \u2013 Smoke Tests",
+    "_postman_id": "48e38425-68d8-4b6a-aa9c-a9824e6ffa27",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Basic functionality checks for auth, campsites CRUD with RLS, and weather endpoint."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "emailA",
+      "value": "user.a@example.com"
+    },
+    {
+      "key": "passwordA",
+      "value": "Passw0rd!a"
+    },
+    {
+      "key": "emailB",
+      "value": "user.b@example.com"
+    },
+    {
+      "key": "passwordB",
+      "value": "Passw0rd!b"
+    },
+    {
+      "key": "lat",
+      "value": "51.5074"
+    },
+    {
+      "key": "lon",
+      "value": "-0.1278"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (User A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailA}}\",\n  \"password\": \"{{passwordA}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var res = pm.response.json();",
+                  "pm.environment.set('userA_id', res && res.id ? res.id : '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (User A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailA}}\",\n  \"password\": \"{{passwordA}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function(){ pm.response.to.have.status(200); });",
+                  "var res = pm.response.json() || {};",
+                  "pm.environment.set('tokenA', res.access_token || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register (User B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailB}}\",\n  \"password\": \"{{passwordB}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (User B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailB}}\",\n  \"password\": \"{{passwordB}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function(){ pm.response.to.have.status(200); });",
+                  "var res = pm.response.json() || {};",
+                  "pm.environment.set('tokenB', res.access_token || '');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Campsites",
+      "item": [
+        {
+          "name": "List campsites (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/campsites"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function(){ pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create campsite (as User A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": "{{base_url}}/api/campsites",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Riverside Camp\",\n  \"location\": \"Lake District\",\n  \"features\": \"River, toilets\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "var res = pm.response.json() || {};",
+                  "pm.environment.set('campsite_id', res.id || (res.data && res.data.id) || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create campsite (no token) \u2013 expected 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/campsites",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Should Fail\",\n  \"location\": \"Nowhere\",\n  \"features\": \"none\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', function(){ pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update campsite (as owner A)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": "{{base_url}}/api/campsites/{{campsite_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"features\": \"River, toilets, showers\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function(){ pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update A's campsite (as User B) \u2013 should be 403 if RLS enforced in server",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": "{{base_url}}/api/campsites/{{campsite_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hacked by B\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete campsite (as owner A)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": "{{base_url}}/api/campsites/{{campsite_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', function(){ pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Weather",
+      "item": [
+        {
+          "name": "GET /api/weather (London)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/weather?lat={{lat}}&lon={{lon}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function(){ pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
