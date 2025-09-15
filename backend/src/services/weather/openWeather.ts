@@ -1,4 +1,4 @@
-import { OWM_KEY } from "../../env.ts";
+import { OWM_KEY } from "../config/env.ts";
 
 const BASE = "https://api.openweathermap.org/data/3.0/onecall";
 const GOOD_TEMP = 288.15; // 15°C in Kelvin

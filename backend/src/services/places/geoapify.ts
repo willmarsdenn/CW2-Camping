@@ -1,4 +1,4 @@
-import { GEOAPIFY_KEY } from "../../env.ts";
+import { GEOAPIFY_KEY } from "../../config/env.ts";
 
 const BASE = "https://api.geoapify.com/v2/places";
 
