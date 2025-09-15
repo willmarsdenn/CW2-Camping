@@ -1,5 +1,5 @@
 import { jwt } from "../deps.ts";
-import { JWT_SECRET } from "../env.ts";
+import { JWT_SECRET } from "../config/env.ts";
 import type { Request, Response, NextFunction } from "../deps.ts";
 
 export function authMiddleware(
