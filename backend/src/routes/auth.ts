@@ -15,8 +15,6 @@ router.post(
     "/register",
     async (req: Request<NoParams, unknown, RegisterBody>, res: Response) => {
 
-        console.log("raw body:", req.body);
-        console.log("email repr:", JSON.stringify(req.body?.email));
         const parsed = RegisterSchema.safeParse(req.body);
         if (!parsed.success) {
             return res.status(400).json(parsed.error);

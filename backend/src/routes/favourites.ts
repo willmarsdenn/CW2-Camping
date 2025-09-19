@@ -1,5 +1,5 @@
 import { express, z, type Request, type Response } from "../deps.ts";
-import { publicAuthClient } from "../supabaseClient.ts";
+import { createSupabaseForRequest } from "../supabaseClient.ts";
 import { authMiddleware } from "../middleware/auth.ts";
 import { NoParams } from "../types/http.ts";
 
@@ -9,7 +9,8 @@ router.use(authMiddleware);
 router.get(
     "/",
     async (req: Request, res: Response) => {
-        const { data, error } = await publicAuthClient
+        const supabase = createSupabaseForRequest(req);
+        const { data, error } = await supabase
             .from("favourites")
             .select("id,campsite_id,campsites(name,lat,lon)")
             .eq("user_id", req.user.id);
@@ -24,7 +25,8 @@ router.get(
 router.post(
     "/:campsiteId",
     async (req: Request<{ campsiteId: string }>, res: Response) => {
-        const { data, error } = await publicAuthClient
+        const supabase = createSupabaseForRequest(req);
+        const { data, error } = await supabase
             .from("favourites")
             .insert({ user_id: req.user.id, campsite_id: req.params.campsiteId })
             .select()
@@ -40,7 +42,8 @@ router.post(
 router.delete(
     "/:campsiteId",
     async (req: Request<{ campsiteId: string }>, res: Response) => {
-        const { error } = await publicAuthClient
+        const supabase = createSupabaseForRequest(req);
+        const { error } = await supabase
             .from("favourites")
             .delete()
             .eq("user_id", req.user.id)
@@ -71,7 +74,8 @@ router.post(
             return res.status(400).json(parsed.error);
         };
 
-        const { data, error } = await publicAuthClient
+        const supabase = createSupabaseForRequest(req);
+        const { data, error } = await supabase
             .from("alerts")
             .insert({ ...parsed.data, user_id: req.user.id })
             .select()

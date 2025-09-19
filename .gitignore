@@ -1,5 +1,6 @@
 node_modules/
 .env
+.env.dev
 dist/
 .DS_Store
 backend/deno.lock

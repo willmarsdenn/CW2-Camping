@@ -1,6 +1,6 @@
 {
     "tasks": {
-        "dev": "deno run -A --watch=static,src src/server.ts"
+        "dev": "deno run -A --env-file=.env.dev --env-file=.env src/server.ts"
     },
     "imports": {
         "express": "npm:express@4",
