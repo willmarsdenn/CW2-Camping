@@ -1,0 +1,504 @@
+{
+  "info": {
+    "_postman_id": "9a944240-dac1-4d4f-b260-3e7dc6e4d676",
+    "name": "Backend API Tests (Auto-Generated)",
+    "description": "Detected auth: Bearer JWT via Authorization header (set {{authToken}} after /auth/login).\nEnvironment/collection variables: {{baseUrl}} (default http://localhost:8000), {{authToken}}, {{registerEmail}}, {{testPassword}}, {{testUserId}}, {{campsiteId}}, {{campsiteIdToDelete}}, {{favouriteId}}, {{alertId}}, {{testSecret}}, {{allowTestCleanup}}.\nEndpoint index:\n- POST /auth/register\n- POST /auth/login\n- POST /campsites/\n- GET /campsites/\n- GET /campsites/search\n- GET /campsites/:id\n- PUT /campsites/:id\n- DELETE /campsites/:id\n- POST /favourites/:campsiteId\n- GET /favourites/\n- DELETE /favourites/:campsiteId\n- POST /favourites/alerts/subscribe\n- GET /weather/:campsiteId\n- DELETE /test/cleanup-user\nAssumptions:\n- Supabase auth routes return { user, session } (session may contain access_token once email confirmation disabled).\n- Supabase tables expose id/user_id/lat/lon/description/campsite_id/alert_type fields.\n- Geoapify search returns JSON with a features array.\n- Weather endpoint yields { goodWeather, alerts, daily } and propagates AccuWeather errors.\n- /test/cleanup-user mounts only when ALLOW_TEST_CLEANUP=true; set {{allowTestCleanup}}=\"true\" and {{testSecret}} when exercising positive path.\nSetup: point {{baseUrl}} to your server (e.g., http://localhost:8000) and ensure server-side API keys are configured.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Routes from backend/src/routes/auth.ts",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"email\": \"{{registerEmail}}\",\n \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth","register"] }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const unique=Date.now();",
+                  "const email=`auto_${unique}@example.com`;",
+                  "pm.variables.set('registerEmail',email);",
+                  "pm.collectionVariables.set('registerEmail',email);",
+                  "if(!pm.collectionVariables.get('testPassword')){pm.collectionVariables.set('testPassword','Sup3rSecret!');}",
+                  "pm.variables.set('testPassword',pm.collectionVariables.get('testPassword'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('responds quickly',()=>pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('content-type json',()=>{pm.response.to.have.header('content-type');pm.expect(pm.response.headers.get('content-type')).to.match(/json/i);});",
+                  "let body=null;try{body=pm.response.json();}catch(e){}",
+                  "pm.test('body has user/session',()=>{pm.expect(body).to.be.an('object');pm.expect(body).to.have.property('user');pm.expect(body).to.have.property('session');pm.expect(body.user).to.have.property('id');});",
+                  "pm.collectionVariables.set('testUserId',body?.user?.id||'');",
+                  "pm.collectionVariables.set('registerEmail',pm.variables.get('registerEmail'));",
+                  "pm.collectionVariables.set('testPassword',pm.variables.get('testPassword'));",
+                  "const invalid=pm.variables.replaceIn('{{baseUrl}}/auth/register');",
+                  "pm.sendRequest({url:invalid,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({email:'bad',password:'1'})}},(err,res)=>{pm.test('invalid register -> 400',()=>{pm.expect(err).to.equal(null);pm.expect(res.code).to.eql(400);});});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"email\": \"{{registerEmail}}\",\n \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('responds quickly',()=>pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('content-type json',()=>{pm.response.to.have.header('content-type');pm.expect(pm.response.headers.get('content-type')).to.match(/json/i);});",
+                  "let body=null;try{body=pm.response.json();}catch(e){}",
+                  "pm.test('login returns session token',()=>{pm.expect(body).to.have.property('session');pm.expect(body.session).to.have.property('access_token');});",
+                  "pm.collectionVariables.set('authToken',body?.session?.access_token||'');",
+                  "const bad=pm.variables.replaceIn('{{baseUrl}}/auth/login');",
+                  "pm.sendRequest({url:bad,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({email:pm.collectionVariables.get('registerEmail'),password:\"wrong\"})}},(err,res)=>{pm.test('bad password -> 401',()=>{pm.expect(err).to.equal(null);pm.expect(res.code).to.eql(401);});});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Campsites",
+      "description": "Routes from backend/src/routes/campsites.ts",
+      "item": [
+        {
+          "name": "POST /campsites/",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"name\": \"Camp {{timestamp}}\",\n \"lat\": 51.5074,\n \"lon\": -0.1278,\n \"description\": \"Created in automated suite\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/campsites", "host": ["{{baseUrl}}"], "path": ["campsites"] }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "type": "text/javascript", "exec": [ "pm.variables.set('timestamp',Date.now());" ] }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('fast response',()=>pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('json header',()=>{pm.response.to.have.header('content-type');pm.expect(pm.response.headers.get('content-type')).to.match(/json/i);});",
+                  "const body=pm.response.json();",
+                  "pm.test('campsite schema',()=>{pm.expect(body).to.have.property('id');pm.expect(body).to.have.property('lat');pm.expect(body).to.have.property('lon');pm.expect(body).to.have.property('user_id');});",
+                  "pm.collectionVariables.set('campsiteId',body.id);",
+                  "const invalid=pm.variables.replaceIn('{{baseUrl}}/campsites');",
+                  "pm.sendRequest({url:invalid,method:'POST',header:{'Content-Type':'application/json','Authorization':pm.variables.replaceIn('Bearer {{authToken}}')},body:{mode:'raw',raw:JSON.stringify({name:'Bad'})}},(err,res)=>{pm.test('invalid campsite -> 400',()=>pm.expect(res.code).to.eql(400));});",
+                  "pm.sendRequest({url:invalid,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({name:'NoAuth',lat:1,lon:1})}},(err,res)=>{pm.test('create requires auth',()=>pm.expect(res.code).to.eql(401));});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /campsites/",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/campsites", "host": ["{{baseUrl}}"], "path": ["campsites"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('fast response',()=>pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('list contains campsite',()=>{pm.expect(Array.isArray(body)).to.be.true;const found=body.find(i=>i.id===pm.collectionVariables.get('campsiteId'));pm.expect(found).to.exist;});",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/campsites'),method:'GET'},(err,res)=>pm.test('list unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /campsites/search",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campsites/search?q={{search}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["campsites","search"],
+              "query": [{ "key": "q", "value": "{{search}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [ "pm.variables.set('search',pm.collectionVariables.get('campsiteId')||'camp');" ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('fast response',()=>pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('features array',()=>pm.expect(Array.isArray(body.features)).to.be.true);",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/campsites/search?q=camp'),method:'GET'},(err,res)=>pm.test('search unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /campsites/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/campsites/{{campsiteId}}", "host": ["{{baseUrl}}"], "path": ["campsites","{{campsiteId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('details match id',()=>pm.expect(body.id).to.eql(pm.collectionVariables.get('campsiteId')));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/campsites/invalid-id'),method:'GET',header:{'Authorization':pm.variables.replaceIn('Bearer {{authToken}}')}},(err,res)=>pm.test('unknown campsite -> 404',()=>pm.expect(res.code).to.eql(404)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PUT /campsites/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n \"description\": \"Updated by tests\"\n}" },
+            "url": { "raw": "{{baseUrl}}/campsites/{{campsiteId}}", "host": ["{{baseUrl}}"], "path": ["campsites","{{campsiteId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('description updated',()=>pm.expect(body.description).to.eql('Updated by tests'));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/campsites/{{campsiteId}}'),method:'PUT',header:{'Content-Type':'application/json','Authorization':pm.variables.replaceIn('Bearer {{authToken}}')},body:{mode:'raw',raw:JSON.stringify({lat:'bad'})}},(err,res)=>pm.test('update validates body',()=>pm.expect(res.code).to.eql(400)));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/campsites/{{campsiteId}}'),method:'PUT',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({description:'no auth'})}},(err,res)=>pm.test('update unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "DELETE /campsites/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/campsites/{{campsiteIdToDelete}}", "host": ["{{baseUrl}}"], "path": ["campsites","{{campsiteIdToDelete}}"] }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.collectionVariables.get('campsiteIdToDelete')){pm.collectionVariables.set('campsiteIdToDelete',pm.collectionVariables.get('campsiteId'));}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "pm.test('delete ok',()=>pm.expect(pm.response.json().ok).to.be.true);",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/campsites/{{campsiteIdToDelete}}'),method:'GET',header:{'Authorization':pm.variables.replaceIn('Bearer {{authToken}}')}},(err,res)=>pm.test('deleted now 404',()=>pm.expect(res.code).to.eql(404)));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/campsites/{{campsiteIdToDelete}}'),method:'DELETE'},(err,res)=>pm.test('delete unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Favourites",
+      "description": "Routes from backend/src/routes/favourites.ts",
+      "item": [
+        {
+          "name": "POST /favourites/:campsiteId",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/favourites/{{campsiteId}}", "host": ["{{baseUrl}}"], "path": ["favourites","{{campsiteId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('favourite schema',()=>{pm.expect(body).to.have.property('id');pm.expect(body.campsite_id).to.eql(pm.collectionVariables.get('campsiteId'));});",
+                  "pm.collectionVariables.set('favouriteId',body.id);",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/favourites/not-a-uuid'),method:'POST',header:{'Authorization':pm.variables.replaceIn('Bearer {{authToken}}')}},(err,res)=>pm.test('invalid favourite id -> 400',()=>pm.expect(res.code).to.eql(400)));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/favourites/{{campsiteId}}'),method:'POST'},(err,res)=>pm.test('favourite unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /favourites/",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/favourites", "host": ["{{baseUrl}}"], "path": ["favourites"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('list includes favourite',()=>{pm.expect(Array.isArray(body)).to.be.true;pm.expect(body.some(i=>i.id===pm.collectionVariables.get('favouriteId'))).to.be.true;});",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/favourites'),method:'GET'},(err,res)=>pm.test('favourites unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "DELETE /favourites/:campsiteId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/favourites/{{campsiteId}}", "host": ["{{baseUrl}}"], "path": ["favourites","{{campsiteId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "pm.test('delete returns ok',()=>pm.expect(pm.response.json().ok).to.be.true);",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/favourites/not-a-uuid'),method:'DELETE',header:{'Authorization':pm.variables.replaceIn('Bearer {{authToken}}')}},(err,res)=>pm.test('delete invalid id -> 400',()=>pm.expect(res.code).to.eql(400)));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/favourites/{{campsiteId}}'),method:'DELETE'},(err,res)=>pm.test('delete favourite unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /favourites/alerts/subscribe",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n \"campsite_id\": \"{{campsiteId}}\",\n \"alert_type\": \"weather\"\n}" },
+            "url": { "raw": "{{baseUrl}}/favourites/alerts/subscribe", "host": ["{{baseUrl}}"], "path": ["favourites","alerts","subscribe"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('alert stored',()=>{pm.expect(body).to.have.property('id');pm.expect(body.campsite_id).to.eql(pm.collectionVariables.get('campsiteId'));});",
+                  "pm.collectionVariables.set('alertId',body.id);",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/favourites/alerts/subscribe'),method:'POST',header:{'Content-Type':'application/json','Authorization':pm.variables.replaceIn('Bearer {{authToken}}')},body:{mode:'raw',raw:JSON.stringify({campsite_id:'not-a-uuid'})}},(err,res)=>pm.test('alert invalid body -> 400',()=>pm.expect(res.code).to.eql(400)));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/favourites/alerts/subscribe'),method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({campsite_id:pm.collectionVariables.get('campsiteId')})}},(err,res)=>pm.test('alert unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Weather",
+      "description": "Routes from backend/src/routes/weathers.ts",
+      "item": [
+        {
+          "name": "GET /weather/:campsiteId",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/weather/{{campsiteId}}", "host": ["{{baseUrl}}"], "path": ["weather","{{campsiteId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('json header',()=>pm.response.to.have.header('content-type'));",
+                  "const body=pm.response.json();",
+                  "pm.test('weather schema',()=>{pm.expect(body).to.have.property('goodWeather');pm.expect(Array.isArray(body.alerts)).to.be.true;pm.expect(Array.isArray(body.daily)).to.be.true;});",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/weather/{{campsiteId}}'),method:'GET'},(err,res)=>pm.test('weather unauthorized -> 401',()=>pm.expect(res.code).to.eql(401)));",
+                  "pm.sendRequest({url:pm.variables.replaceIn('{{baseUrl}}/weather/00000000-0000-0000-0000-000000000000'),method:'GET',header:{'Authorization':pm.variables.replaceIn('Bearer {{authToken}}')}},(err,res)=>pm.test('weather unknown campsite -> 404',()=>pm.expect(res.code).to.eql(404)));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Test Cleanup",
+      "description": "Routes from backend/src/routes/testCleanup.ts",
+      "item": [
+        {
+          "name": "DELETE /test/cleanup-user",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-test-secret", "value": "{{testSecret}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n \"user_id\": \"{{testUserId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/test/cleanup-user", "host": ["{{baseUrl}}"], "path": ["test","cleanup-user"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const allow=pm.collectionVariables.get('allowTestCleanup');",
+                  "if(allow==='true'){",
+                  "pm.test('status 204',()=>pm.response.to.have.status(204));",
+                  "pm.test('fast response',()=>pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('no body',()=>pm.expect(pm.response.text()).to.eql(''));",
+                  "const url=pm.variables.replaceIn('{{baseUrl}}/test/cleanup-user');",
+                  "pm.sendRequest({url,method:'DELETE',header:{'Content-Type':'application/json','x-test-secret':'wrong'},body:{mode:'raw',raw:JSON.stringify({user_id:pm.collectionVariables.get('testUserId')})}},(err,res)=>pm.test('cleanup bad secret -> 401',()=>pm.expect(res.code).to.eql(401)));",
+                  "pm.sendRequest({url,method:'DELETE',header:{'Content-Type':'application/json','x-test-secret':pm.variables.replaceIn('{{testSecret}}')},body:{mode:'raw',raw:JSON.stringify({})}},(err,res)=>pm.test('cleanup requires user_id',()=>pm.expect(res.code).to.eql(400)));",
+                  "}",
+                  "else{",
+                  "pm.test('cleanup disabled -> 404',()=>pm.response.to.have.status(404));",
+                  "let errBody={};try{errBody=pm.response.json();}catch(e){}",
+                  "pm.test('cleanup disabled returns error message',()=>pm.expect(errBody).to.have.property('error'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
+    { "key": "authToken", "value": "", "type": "string" },
+    { "key": "registerEmail", "value": "", "type": "string" },
+    { "key": "testPassword", "value": "Sup3rSecret!", "type": "string" },
+    { "key": "testUserId", "value": "", "type": "string" },
+    { "key": "campsiteId", "value": "", "type": "string" },
+    { "key": "campsiteIdToDelete", "value": "", "type": "string" },
+    { "key": "favouriteId", "value": "", "type": "string" },
+    { "key": "alertId", "value": "", "type": "string" },
+    { "key": "testSecret", "value": "", "type": "string" },
+    { "key": "allowTestCleanup", "value": "false", "type": "string" }
+  ]
+}
