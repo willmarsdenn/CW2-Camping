@@ -9,7 +9,7 @@ This will use the [AcuWeather API](https://developer.accuweather.com) and the [G
 - [x] Create Jira Board and GitHub Repository
 - [x] Create user stories (USER_STORIES.md)
 - [ ] Design frontend/backend/database
-- [ ] Backend Completed
+- [x] Backend Completed
 - [ ] Documentation for API
 - [ ] Frontend Completed
 
